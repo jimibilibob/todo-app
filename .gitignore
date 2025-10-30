@@ -1,0 +1,26 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.log
+*.tlog
+*.pdb
+*.opendata
+
+# Build artifacts
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+
+# Packages
+packages/
+*.nupkg
+
+# Rider
+.idea/
+
+# Other common exclusions
+*.bak
+*.tmp
+*~

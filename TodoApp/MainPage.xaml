@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TodoApp.MainPage"
+             xmlns:viewmodel="clr-namespace:TodoApp.ViewModels"
+             xmlns:DataType ="viewmodel:MainViewModel"
+             xmlns:models="clr-namespace:TodoApp.Models.Local"
+             Title="Tareas">
+
+    <AbsoluteLayout>
+        <Grid RowDefinitions="100, Auto"
+              ColumnDefinitions=".75*, .25*"
+                AbsoluteLayout.LayoutBounds="0,0,1,1"
+                AbsoluteLayout.LayoutFlags="All">
+            <Image Source="dotnet_bot.png"
+               Grid.Row="0"
+                />
+            <CollectionView Grid.Row="1"
+                            Grid.ColumnSpan="2"
+                            Margin="0, 0, 0, 50"
+                            IsGrouped="true"
+                            ItemsSource="{Binding GroupedItems}"
+                            x:Name="TodoCollectionView">
+                <CollectionView.GroupHeaderTemplate>
+                    <DataTemplate
+                        x:DataType="models:TodoListObservableCollection">
+                        <Label
+                            Text="{Binding SectionTitle}"
+                            FontSize="Large"
+                            FontAttributes="Bold"
+                            Padding="10"
+                            />
+                    </DataTemplate>
+                </CollectionView.GroupHeaderTemplate>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate
+                        x:DataType="models:TodoEntity">
+                        <SwipeView Padding="8">
+                            <SwipeView.RightItems>
+                                <SwipeItems>
+                                    <SwipeItemView BackgroundColor="Red"
+                                                   Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodel:MainViewModel}}, Path=DeleteItemCommand}"
+                                                   CommandParameter="{Binding .}">
+                                        <Label Text="Delete" TextColor="White" VerticalTextAlignment="Center"/>
+                                    </SwipeItemView>
+                                </SwipeItems>
+                            </SwipeView.RightItems>
+
+                            <Grid RowDefinitions="Auto, *"
+                              ColumnDefinitions=".15*, .85*">
+                                <CheckBox Grid.Column="0"
+                                    IsChecked="{Binding IsCompleted}"
+                                          x:Name="CompletedCheckBox">
+                                    <CheckBox.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            Command="{Binding Source={x:Reference TodoCollectionView}, Path=BindingContext.ToggleTodoStatusCommand}"
+                                            CommandParameter="{Binding Source={x:Reference CompletedCheckBox}, Path=BindingContext}"
+                                            />
+                                    </CheckBox.GestureRecognizers>
+                                </CheckBox>
+                                <Grid Grid.Column="1"
+                                RowDefinitions="Auto, *">
+                                    <Label Text="{Binding Title}"/>
+                                    <Label Grid.Row="1" Text="{Binding Description}"/>
+
+                                </Grid>
+                            </Grid>
+                        </SwipeView>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+        <Button
+            AbsoluteLayout.LayoutBounds="0,0,1,1"
+            AbsoluteLayout.LayoutFlags="All"
+            HeightRequest="60"
+            WidthRequest="60"
+            CornerRadius="30"
+            Text="+"
+            FontSize="30"
+            HorizontalOptions="End"
+            VerticalOptions="End"
+            Margin="30"
+            Command="{Binding NavigateToCreationTaskCommand}"
+            />
+    </AbsoluteLayout>
+
+</ContentPage>

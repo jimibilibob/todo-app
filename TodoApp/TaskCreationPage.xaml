@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="TodoApp.TaskCreationPage"
+             xmlns:viewmodel="clr-namespace:TodoApp.ViewModels"
+             xmlns:DataType ="viewmodel:TaskCreationViewModel"
+             Title="Crear Nueva Tarea">
+    <VerticalStackLayout Padding="12"
+                         Spacing="8">
+        <Label 
+            Text="Tarea Nueva"
+            VerticalOptions="Center" 
+            HorizontalOptions="Center" 
+            FontSize="22"/>
+
+        <Entry Placeholder="Ingrese el titulo de la tarea"
+                 Text="{Binding Title}"
+                />
+        <Label Text="El titulo es obligatorio"
+               IsVisible="{Binding IsInvalidTitle}"
+               TextColor="Red"/>
+
+        <Entry Placeholder="Ingrese la descripcion de la tarea (opcional)"
+                    Text="{Binding Description}"
+                />
+        <Button Text="Crear"
+                HeightRequest="50"
+                Command="{Binding CreateTodoCommand}"
+            />
+    </VerticalStackLayout>
+</ContentPage>
