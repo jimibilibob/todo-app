@@ -480,11 +480,12 @@ jobs:
             # project (net10.0-ios;net10.0-android) would otherwise demand the
             # Android workload too even though only iOS is being built.
             #
-            # -p:ArchiveOnBuild=true is what makes dotnet publish produce an
-            # .ipa at all (the Microsoft docs' own signed-publish example uses
-            # it); without it publish only leaves a .app behind.
-            PUBLISH_CMD="dotnet publish '$CSPROJ' -f '$TFM' -c '$CONFIGURATION' -p:TargetFrameworks='$TFM' -p:RuntimeIdentifier=ios-arm64 -p:ArchiveOnBuild=true"
+            PUBLISH_CMD="dotnet publish '$CSPROJ' -f '$TFM' -c '$CONFIGURATION' -p:TargetFrameworks='$TFM' -p:RuntimeIdentifier=ios-arm64"
             if [ "$USE_SIGNING" = "true" ]; then
+              # -p:ArchiveOnBuild=true creates an Xcode archive (.xcarchive),
+              # which Xcode itself refuses to do without signing — so it's
+              # only valid here, not on the unsigned path below.
+              PUBLISH_CMD="$PUBLISH_CMD -p:ArchiveOnBuild=true"
               PUBLISH_CMD="$PUBLISH_CMD -p:CodesignKey='Apple Development'"
               PUBLISH_CMD="$PUBLISH_CMD -p:CodesignProvision='$PROVISIONING_PROFILE_NAME'"
               PUBLISH_CMD="$PUBLISH_CMD -p:CodesignTeamId='$DEVELOPMENT_TEAM'"
