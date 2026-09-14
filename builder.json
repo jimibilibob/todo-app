@@ -1,0 +1,23 @@
+{
+  "project": "todo-app-gh-ios",
+  "platform": "ios",
+  "github": {
+    "owner": "jimibilibob",
+    "repo": "todo-app"
+  },
+  "provider": "github",
+  "codemagic": {},
+  "bitrise": {},
+  "ios": {
+    "path": "./TodoApp"
+  },
+  "flutter": {
+    "watch": {}
+  },
+  "reactNative": {},
+  "kmp": {},
+  "maui": {
+    "projectPath": "TodoApp\\TodoApp.csproj"
+  },
+  "mobai": {}
+}
