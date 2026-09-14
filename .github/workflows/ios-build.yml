@@ -591,14 +591,16 @@ jobs:
 
           # Create IPA
           if [ "$PROJECT_TYPE" = "maui" ]; then
-            # dotnet publish either produces a signed .ipa directly, or (unsigned)
-            # only the .app bundle, which is zipped the same way as the other
-            # unsigned paths below.
+            # dotnet publish produces a .ipa directly (signed or unsigned —
+            # both package one; only ArchiveOnBuild's .xcarchive step requires
+            # signing, and that only runs on the signed path above). Fall back
+            # to zipping the .app in case some configuration only leaves that.
+            mkdir -p build
             PUBLISH_DIR=$(dirname "$CSPROJ")
             IPA_FOUND=$(find "$PUBLISH_DIR/bin" -name "*.ipa" -print -quit 2>/dev/null)
             if [ -n "$IPA_FOUND" ]; then
               cp "$IPA_FOUND" "build/$BUILD_ID.ipa"
-              echo "Created signed IPA: build/$BUILD_ID.ipa"
+              echo "Created IPA: build/$BUILD_ID.ipa"
             else
               APP_PATH=$(find "$PUBLISH_DIR/bin" -name "*.app" -type d -print -quit 2>/dev/null)
               if [ -z "$APP_PATH" ]; then
