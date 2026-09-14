@@ -53,6 +53,16 @@ on:
         required: false
         type: string
         default: '17'
+      dotnet_version:
+        description: '.NET SDK version for MAUI builds (e.g., 10.0.100). Empty means a recent 10.0.x.'
+        required: false
+        type: string
+        default: ''
+      maui_project_path:
+        description: 'Path to the MAUI .csproj (auto-detected if empty and only one targets iOS)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   simulator:
@@ -91,6 +101,8 @@ jobs:
           IN_DURATION: ${{ inputs.duration }}
           IN_FLUTTER_VERSION: ${{ inputs.flutter_version }}
           IN_JDK_VERSION: ${{ inputs.jdk_version }}
+          IN_DOTNET_VERSION: ${{ inputs.dotnet_version }}
+          IN_MAUI_PROJECT_PATH: ${{ inputs.maui_project_path }}
         run: |
           set -e
           param() { # name dispatch-value jq-path default
@@ -110,6 +122,8 @@ jobs:
           param duration         "$IN_DURATION" '""' '30m'
           param flutter_version  "$IN_FLUTTER_VERSION" '.flutter.version' ''
           param jdk_version      "$IN_JDK_VERSION" '.kmp.jdkVersion' '17'
+          param dotnet_version   "$IN_DOTNET_VERSION" '.maui.dotnetVersion' ''
+          param maui_project_path "$IN_MAUI_PROJECT_PATH" '.maui.projectPath' ''
 
       # Starts the simulator booting in the background (cached, so later runs
       # boot fast) while the app builds.
@@ -142,6 +156,8 @@ jobs:
             echo "type=reactnative" >> $GITHUB_OUTPUT
           elif grep -rqlE 'kotlin\("multiplatform"\)|org\.jetbrains\.kotlin\.multiplatform|id\("org.jetbrains.kotlin.multiplatform"\)' --include='*.gradle.kts' --include='*.gradle' --include='libs.versions.toml' . 2>/dev/null; then
             echo "type=kmp" >> $GITHUB_OUTPUT
+          elif find . -maxdepth 3 -name '*.csproj' -print0 2>/dev/null | xargs -0 -r grep -lE '<TargetFrameworks?>[^<]*net(8|9|10)\.0-ios' 2>/dev/null | grep -q .; then
+            echo "type=maui" >> $GITHUB_OUTPUT
           else
             echo "type=native" >> $GITHUB_OUTPUT
           fi
@@ -257,16 +273,48 @@ jobs:
         if: steps.detect.outputs.type == 'kmp'
         uses: gradle/actions/setup-gradle@v6
 
+      - name: Setup .NET
+        if: steps.detect.outputs.type == 'maui'
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ steps.params.outputs.dotnet_version || '10.0.x' }}
+
+      - name: Install MAUI iOS workload
+        if: steps.detect.outputs.type == 'maui'
+        run: dotnet workload install maui-ios
+
       - name: Build for the simulator
         id: build
         env:
           IOS_PATH: ${{ steps.params.outputs.ios_path }}
           SCHEME: ${{ steps.params.outputs.scheme }}
           PROJECT_TYPE: ${{ steps.detect.outputs.type }}
+          MAUI_PROJECT_PATH: ${{ steps.params.outputs.maui_project_path }}
         run: |
           set -e
 
-          if [ "$PROJECT_TYPE" = "flutter" ]; then
+          if [ "$PROJECT_TYPE" = "maui" ]; then
+            # Simulator builds are never signed on any platform in this
+            # workflow, and .NET for iOS is no exception — no Codesign*
+            # properties needed here, unlike the device build in ios-build.yml.
+            CSPROJ="$MAUI_PROJECT_PATH"
+            if [ -z "$CSPROJ" ]; then
+              CSPROJ=$(find . -maxdepth 3 -name '*.csproj' -exec grep -lE '<TargetFrameworks?>[^<]*net(8|9|10)\.0-ios' {} \; | head -1)
+            fi
+            if [ -z "$CSPROJ" ]; then
+              echo "::error::No .csproj targeting net8.0-ios/net9.0-ios/net10.0-ios found."
+              exit 1
+            fi
+            TFM=$(grep -oE 'net(8|9|10)\.0-ios[A-Za-z0-9.]*' "$CSPROJ" | head -1)
+            echo "Building .NET MAUI iOS project for simulator: $CSPROJ ($TFM)"
+
+            # GitHub's macos-latest runners are Apple Silicon, so the host
+            # simulator runtime is arm64.
+            dotnet build "$CSPROJ" -f "$TFM" -c Debug -p:TargetFrameworks="$TFM" -p:RuntimeIdentifier=iossimulator-arm64
+
+            PUBLISH_DIR=$(dirname "$CSPROJ")
+            APP_PATH=$(find "$PUBLISH_DIR/bin" -path '*iossimulator*' -name '*.app' -type d -print -quit 2>/dev/null)
+          elif [ "$PROJECT_TYPE" = "flutter" ]; then
             # Flutter drives xcodebuild itself and puts the bundle in a known
             # place, so there is nothing to detect here.
             flutter build ios --simulator --debug
